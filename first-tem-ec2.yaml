@@ -1,0 +1,35 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Primer template EC2.
+Resources:
+  WebServerInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-05c1fa8df71875112
+      InstanceType: t2.micro
+      KeyName: aws_tech
+      SubnetId: subnet-03e605e775e6abc7c
+      SecurityGroupIds:
+        - !Ref WebServerSG     
+      Tags:
+        - Key: Name
+          Value: Web server 
+        - Key: Project
+          Value: CloudFormation Step By Step 
+  WebServerSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: SSH_HTTP
+      GroupDescription: only SSH & HTTP
+      VpcId: vpc-0ae2c38279e6f46f8
+      SecurityGroupIngress:
+        - IpProtocol: "tcp"
+          FromPort: 22
+          ToPort: 22
+          CidrIp: "0.0.0.0/0"
+        - IpProtocol: "tcp"
+          FromPort: 80
+          ToPort: 80
+          CidrIp: "0.0.0.0/0"
+      Tags:
+        - Key: Name
+          Value: Web server segurity group 
