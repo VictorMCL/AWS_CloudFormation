@@ -1,0 +1,51 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Primer VPC.
+Resources:
+  AliaVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: '10.0.0.0/16'
+      Tags:
+        - Key: Name
+          Value: AliaSA
+  AliaPublicSubnets:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: '10.0.1.0/24'
+      VpcId: !Ref AliaVPC    
+      AvailabilityZone: us-east-2a  
+      MapPublicIpOnLaunch: True
+      Tags:
+        - Key: Name
+          Value: Alia_Public
+  AliaInternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: Alia_InternetGateway
+  AliaGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref AliaVPC
+      InternetGatewayId: !Ref AliaInternetGateway
+  AliaRouteTable:
+    Type: AWS::EC2::RouteTable 
+    Properties:
+      VpcId: !Ref AliaVPC
+      Tags:
+        - Key: Name
+          Value: Alia_RouteTable
+  AliaInternetRoute:
+    Type: AWS::EC2::Route 
+    DependsOn:
+      - AliaGatewayAttachment
+    Properties:
+      RouteTableId: !Ref AliaRouteTable
+      GatewayId: !Ref AliaInternetGateway
+      DestinationCidrBlock: 0.0.0.0/0
+  AliaSubnetRouteTableAssoc:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref AliaRouteTable
+      SubnetId: !Ref AliaPublicSubnets

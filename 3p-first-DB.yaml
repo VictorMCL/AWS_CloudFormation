@@ -1,0 +1,92 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Sample database stack for the Parameters section
+Parameters:
+  DBClass:
+    Type: String 
+    Description: RDS instance class
+    AllowedValues:
+      - db.t2.micro
+      - db.t2.small
+    Default: db.t2.micro
+    ConstraintDescription: 'DBClass parameter can only have these values: db.t2.micro, db.t2.small'
+  MasterUserName:
+    Type: String
+    Description: Master username for the DB instance
+    MaxLength: 10
+    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
+    NoEcho: true
+  MasterUserPassword:
+    Type: String
+    Description: Master password for the DB instance
+    MinLength: 8   
+    NoEcho: true
+  MultiAZ:
+    Type: String
+    Description: Enable Multi-AZ?
+    AllowedValues:
+      - true
+      - false
+    Default: false
+    ConstraintDescription: 'MultiAZ parameter should be either: true or false.'
+  AllocatedStorage:
+    Type: Number
+    Description: Databases storage size in GB
+    MinValue: 8
+    MaxValue: 20
+    Default: 8
+    ConstraintDescription: AllocatedStorage parameter value should be between 8 and 20.
+  SecurityGroupPorts:
+    Type: List<Number>
+    Description: 'Port numbers as a list: <web-server-port>,<database-port>'
+    Default: '80,3306'
+  DbSubnets:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: 'Db subnet ids as a list: <subnet1>,<subnet2>,...'
+  VpcId:
+    Type: AWS::EC2::SecurityGroup
+    Description: 'A valid VPC id in your AWS account'
+Resources:
+  # Note: Please replace the value of VpcId property
+  # with the VPC id of your default VPC
+  DBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VpcId
+      GroupDescription: 'Database instances security group'
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          FromPort: !Select [ 0, !Ref SecurityGroupPorts ]
+          ToPort: !Select [ 0, !Ref SecurityGroupPorts ]
+          IpProtocol: tcp
+  WebServerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VpcId
+      GroupDescription: 'Web server instances security group'
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          FromPort: !Select [ 1, !Ref SecurityGroupPorts ]
+          ToPort: !Select [ 1, !Ref SecurityGroupPorts ]
+          IpProtocol: tcp
+
+  # Note: Please replace the value of SubnetIds property 
+  # with the subnet ids of the subnets in your default VPC!
+  DBSubnetGroup:
+    Type: 'AWS::RDS::DBSubnetGroup'
+    Properties:
+      DBSubnetGroupDescription: Subnets to launch db instances into
+      SubnetIds: !Ref DbSubnets
+
+  DatabaseInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceClass: !Ref DBClass 
+      Engine: mysql
+      MultiAZ: !Ref MultiAZ
+      PubliclyAccessible: true
+      AllocatedStorage: !Ref AllocatedStorage
+      MasterUsername: !Ref MasterUserName
+      MasterUserPassword: !Ref MasterUserPassword
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      VPCSecurityGroups: 
+        - !Ref DBSecurityGroup
