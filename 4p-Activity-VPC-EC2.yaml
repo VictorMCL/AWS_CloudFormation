@@ -12,12 +12,12 @@ Parameters:
       - t2.nano
       - t2.micro
       - t2.small
-    Default: db.t2.micro
+    Default: t2.micro
     ConstraintDescription: 'InstanceType parameter can only have these values: t2.nano, t2.micro, t2.small'
   ImageId:
     Type: String 
     Description: ImageId
-    Default: ami-0fad7378adf284ce0
+    Default: ami-05c1fa8df71875112
   EBSVolumeSize:
     Type: Number
     Description: EBS storage size in GB
@@ -25,8 +25,16 @@ Parameters:
     MaxValue: 30
     Default: 5
     ConstraintDescription: AllocatedStorage parameter value should be between 8 and 20.
-  
-
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: 'Keypair instance'
+  CIDRSubnetsVPC:
+    Type: CommaDelimitedList
+    Description: 'Db subnet ids as a list: <VPC>,<subnet1>,<subnet2>'
+  RegionName:
+    Type: AWS::EC2::AvailabilityZone::Name 
+    Default: us-west-2
+    Description: 'A valid VPC id in your AWS account'
 
 Resources:
   # VPC ---
@@ -34,19 +42,19 @@ Resources:
     Type: AWS::EC2::VPC
     Description: Section 3 activity VPC
     Properties:
-      CidrBlock: 10.0.0.0/16
+      CidrBlock: !Select [0, !Ref CIDRSubnetsVPC]
       EnableDnsSupport: true
       EnableDnsHostnames: true
       Tags:
         - Key: Name
-          Value: Section 3 Activity VPC
+          Value: !Sub '${AWS::StackName}-vpc'
 
   # Subnets ---        
   PublicSubnet:
     Type: AWS::EC2::Subnet 
     Properties:
-      AvailabilityZone: eu-west-1a
-      CidrBlock: 10.0.0.0/24
+      AvailabilityZone: !Ref RegionName
+      CidrBlock: !Select [1, !Ref CIDRSubnetsVPC]
       MapPublicIpOnLaunch: true
       VpcId: !Ref Vpc
       Tags:
@@ -56,8 +64,8 @@ Resources:
   PrivateSubnet:
     Type: AWS::EC2::Subnet 
     Properties:
-      AvailabilityZone: eu-west-1a
-      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Ref RegionName
+      CidrBlock: !Select [2, !Ref CIDRSubnetsVPC]
       VpcId: !Ref Vpc
       Tags:
         - Key: Name
@@ -118,12 +126,13 @@ Resources:
       InstanceType: !Ref InstanceType
       SubnetId: !Ref PublicSubnet 
       ImageId: !Ref ImageId
+      KeyName: !Ref KeyName
       SecurityGroupIds:
         - !Ref WebServerSecurityGroup
       BlockDeviceMappings:
         - DeviceName: /dev/sdf
           Ebs:
-            VolumeSize: 20
+            VolumeSize: !Ref EBSVolumeSize
             VolumeType: gp2
       Tags:
         - Key: Name
